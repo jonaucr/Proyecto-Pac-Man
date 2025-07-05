@@ -16,6 +16,8 @@ typedef struct {
 void dispatch_message(const char* type, cJSON* payload, int client_fd);
 
 // Declaración de handlers (solo prototipos, la lógica va después)
+void handle_create_game(cJSON* payload, int client_fd);
+void handle_disconnect(cJSON* payload, int client_fd);
 void handle_move(cJSON* payload, int client_fd);
 void handle_update_score(cJSON* payload, int client_fd);
 void handle_join_game(cJSON* payload, int client_fd);

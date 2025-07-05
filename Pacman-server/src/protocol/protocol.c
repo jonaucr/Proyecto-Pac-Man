@@ -18,7 +18,17 @@ cJSON* recibir_json(int fd) {
 
 int enviar_json(int fd, cJSON* json) {
     char* json_str = cJSON_PrintUnformatted(json);
-    int result = send(fd, json_str, strlen(json_str), 0);
+    int len = strlen(json_str);
+
+    // Reservar espacio para el JSON + '\n' + '\0'
+    char* buffer = malloc(len + 2);
+    strcpy(buffer, json_str);
+    buffer[len] = '\n';
+    buffer[len + 1] = '\0';
+
+    int result = send(fd, buffer, strlen(buffer), 0);
+
     free(json_str);
+    free(buffer);
     return result;
 }

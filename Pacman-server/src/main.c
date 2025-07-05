@@ -1,8 +1,12 @@
 
 #include "server/server.h"
 #include "protocol/protocol.h"
+#include "game/game.h"
+
 
 int main() {
+    
+
     int puerto = 5000;
     int server_fd = inicializar_servidor(puerto);
 

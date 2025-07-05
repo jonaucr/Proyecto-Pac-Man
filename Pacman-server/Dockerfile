@@ -11,7 +11,7 @@ COPY ./src /app
 RUN apt-get update && apt-get install -y libcjson-dev
 
 # Compilar el programa
-RUN gcc -o pacman_server main.c server/server.c protocol/protocol.c handler/handler.c -I. -lcjson -lpthread
+RUN gcc -o pacman_server main.c server/server.c protocol/protocol.c handler/handler.c game/game.c -I. -lcjson -lpthread
 
 # Exponer el puerto para comunicación
 EXPOSE 5000
