@@ -42,6 +42,7 @@ int inicializar_servidor(int port) {
     }
 
     printf("Servidor escuchando en el puerto %d...\n", port);
+    printf("ID del servidor: %d\n", server_fd);
     return server_fd;
 
 }
@@ -61,6 +62,7 @@ void* manejar_cliente(void* arg) {
         printf("Mensaje inválido o conexión cerrada por el cliente\n");
         break;
     }
+    
     cJSON* type = cJSON_GetObjectItemCaseSensitive(mensaje, "type");
     cJSON* payload = cJSON_GetObjectItemCaseSensitive(mensaje, "payload");
 

@@ -9,6 +9,9 @@
 #define MAX_GHOSTS 4
 #define MAX_FRUITS 5
 
+#define MAX_GAMES 10
+
+
 typedef struct {
     int x, y;
     int score;
@@ -22,7 +25,7 @@ typedef struct {
 
 typedef struct {
     int x, y;
-    char tipo[10];
+    char type[16];
 } Fruit;
 
 typedef struct {
@@ -36,10 +39,16 @@ typedef struct {
     int num_observers;
 
     Ghost ghosts[MAX_GHOSTS];
+    int num_ghosts; 
     Fruit fruits[MAX_FRUITS];
+    int num_fruits; 
 
     int game_state; // 0 = en curso, 1 = finalizada
 } Game;
+
+extern Game partidas[MAX_GAMES];
+extern int num_partidas;
+
 
 Game crear_nueva_partida(char *id);
 

@@ -8,7 +8,8 @@
 #define WALL 1
 #define PATH 0
 #define FRUIT 2
-
+Game partidas[MAX_GAMES];
+int num_partidas = 0;
 
 
 void inicializar_mapa(int map[MAP_HEIGHT][MAP_WIDTH]) {
