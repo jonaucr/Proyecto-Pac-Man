@@ -57,15 +57,16 @@ void handle_create_game(cJSON* payload, int client_fd) {
 
     // Crear jugador y asignar posición inicial
     Player nuevo_jugador;
-    nuevo_jugador.x = 1;
+    nuevo_jugador.x = 2;
     nuevo_jugador.y = 1;
     nuevo_jugador.score = 0;
     nuevo_jugador.socket = client_port;
+    nuevo_jugador.lives = 3; // Inicializa vidas
     partida->players[0] = nuevo_jugador;
     partida->num_players = 1;
 
     // Ejemplo de ghost y fruit
-    partida->ghosts[0].x = 5;
+    partida->ghosts[0].x = 4;
     partida->ghosts[0].y = 3;
     strcpy(partida->ghosts[0].color, "red");
     partida->num_ghosts = 1;
@@ -105,6 +106,7 @@ void handle_create_game(cJSON* payload, int client_fd) {
         cJSON_AddNumberToObject(player_json, "x", partida->players[i].x);
         cJSON_AddNumberToObject(player_json, "y", partida->players[i].y);
         cJSON_AddNumberToObject(player_json, "score", partida->players[i].score);
+        cJSON_AddNumberToObject(player_json, "lives", partida->players[i].lives);
         cJSON_AddItemToArray(players_arr, player_json);
     }
     cJSON_AddItemToObject(payload_resp, "players", players_arr);
@@ -161,7 +163,7 @@ void handle_disconnect(cJSON* payload, int client_fd) {
     cJSON_Delete(respuesta);
 }
 
-
+//Handle para mover un jugador
 void handle_move(cJSON* payload, int client_fd) {
     printf("Handler: move\n");
 

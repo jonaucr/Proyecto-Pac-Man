@@ -66,17 +66,17 @@ void* manejar_cliente(void* arg) {
     cJSON* type = cJSON_GetObjectItemCaseSensitive(mensaje, "type");
     cJSON* payload = cJSON_GetObjectItemCaseSensitive(mensaje, "payload");
 
-    if (cJSON_IsString(type) && type->valuestring) {
-        dispatch_message(type->valuestring, payload, client_fd);
-        if (strcmp(type->valuestring, "disconnect") == 0) {
-            desconectar = 1;
+        if (cJSON_IsString(type) && type->valuestring) {
+            dispatch_message(type->valuestring, payload, client_fd);
+            if (strcmp(type->valuestring, "disconnect") == 0) {
+                desconectar = 1;
+            }
+        } else {
+            printf("Mensaje sin campo 'type' válido\n");
         }
-    } else {
-        printf("Mensaje sin campo 'type' válido\n");
-    }
 
-    cJSON_Delete(mensaje);
-}
+        cJSON_Delete(mensaje);
+    }
     close(client_fd);
     printf("Cliente desconectado.\n");
     return NULL;

@@ -1,3 +1,15 @@
 {
-    "C_Cpp.default.compilerPath": "/usr/bin/gcc"
+    "C_Cpp.default.compilerPath": "/usr/bin/gcc",
+        "java.project.sourcePaths": [
+        // Añade aquí las carpetas que contienen tu código fuente.
+        // En la estructura estándar de Java, esta es la carpeta 'src'.
+        "PacmanClient/src",
+        "Pacman-client/src"
+    ],
+    "java.project.referencedLibraries": [
+        // Añade aquí las librerías (.jar) que tu proyecto necesita.
+        // El patrón 'lib/**/*.jar' incluye todos los archivos .jar dentro de la carpeta lib.
+        "Pacman-client/lib/**/*.jar",
+        "PacmanClient/lib/**/*.jar"
+    ]
 }

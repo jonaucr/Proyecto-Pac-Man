@@ -9,13 +9,14 @@
 #define MAX_GHOSTS 4
 #define MAX_FRUITS 5
 
-#define MAX_GAMES 10
+#define MAX_GAMES 5
 
 
 typedef struct {
     int x, y;
     int score;
     int socket;
+    int lives;
 } Player;
 
 typedef struct {

@@ -13,18 +13,32 @@ int num_partidas = 0;
 
 
 void inicializar_mapa(int map[MAP_HEIGHT][MAP_WIDTH]) {
+    // Plantilla del laberinto. 1 = Muro (WALL), 0 = Pasillo (PATH)
+    // Puedes diseñar visualmente tu nivel aquí.
+    int level_template[MAP_HEIGHT][MAP_WIDTH] = {
+        {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1},
+        {1,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,1},
+        {1,0,1,1,0,1,1,1,0,1,1,0,1,1,1,0,1,1,0,1},
+        {1,0,1,1,0,1,1,1,0,1,1,0,1,1,1,0,1,1,0,1},
+        {1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
+        {1,0,1,1,0,1,0,1,1,1,1,1,1,0,1,0,1,1,0,1},
+        {1,0,0,0,0,1,0,0,0,1,1,0,0,0,1,0,0,0,0,1},
+        {1,1,1,1,0,1,1,1,0,1,1,0,1,1,1,0,1,1,1,1},
+        {1,0,0,0,0,1,0,0,0,1,1,0,0,0,1,0,0,0,0,1},
+        {1,0,1,1,0,1,0,1,1,1,1,1,1,0,1,0,1,1,0,1},
+        {1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
+        {1,0,1,1,0,1,1,1,0,1,1,0,1,1,1,0,1,1,0,1},
+        {1,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,1},
+        {1,0,0,0,0,1,1,1,0,1,1,0,1,1,1,0,0,0,0,1},
+        {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1}
+    };
+
+    // Copiar la plantilla al mapa del juego
     for (int y = 0; y < MAP_HEIGHT; y++) {
         for (int x = 0; x < MAP_WIDTH; x++) {
-            if (y == 0 || y == MAP_HEIGHT - 1 || x == 0 || x == MAP_WIDTH - 1) {
-                map[y][x] = WALL; // Bordes del mapa
-            } else {
-                map[y][x] = PATH; // Espacio vacío
-            }
+            map[y][x] = level_template[y][x];
         }
     }
-
-    //map[MAP_HEIGHT/2][MAP_WIDTH/2] = FRUIT; // Ejemplo de fruta en una posición específica
-
 }
 
 Game crear_nueva_partida(char *id) {
