@@ -5,6 +5,7 @@
 #include <netinet/in.h>
 #include "game/game.h"
 #include "protocol/protocol.h"
+#include <stdlib.h> // Para rand() y srand()
 
 
 void enviar_estado_juego(Game* partida, int client_fd);
@@ -31,6 +32,39 @@ void dispatch_message(const char* type, cJSON* payload, int client_fd) {
     }
     // Handler por defecto si no se encuentra el type
     printf("Tipo de mensaje desconocido: %s\n", type);
+}
+
+// Genera dos fantasmas en posiciones aleatorias válidas
+void generar_fantasmas(Game* partida, int player_x, int player_y) {
+    int x1, y1, x2, y2;
+    // Fantasma 1 (verde)
+    do {
+        x1 = rand() % MAP_WIDTH;
+        y1 = rand() % MAP_HEIGHT;
+    } while (
+        partida->map[y1][x1] == 1 || // No pared
+        (x1 == player_x && y1 == player_y) // No sobre el jugador
+    );
+
+    // Fantasma 2 (celeste)
+    do {
+        x2 = rand() % MAP_WIDTH;
+        y2 = rand() % MAP_HEIGHT;
+    } while (
+        partida->map[y2][x2] == 1 || // No pared
+        (x2 == player_x && y2 == player_y) || // No sobre el jugador
+        (x2 == x1 && y2 == y1) // No sobre el otro fantasma
+    );
+
+    partida->ghosts[0].x = x1;
+    partida->ghosts[0].y = y1;
+    strcpy(partida->ghosts[0].color, "green");
+
+    partida->ghosts[1].x = x2;
+    partida->ghosts[1].y = y2;
+    strcpy(partida->ghosts[1].color, "cyan"); // celeste
+
+    partida->num_ghosts = 2;
 }
 
 //Handle para crear una partida
@@ -65,11 +99,14 @@ void handle_create_game(cJSON* payload, int client_fd) {
     partida->players[0] = nuevo_jugador;
     partida->num_players = 1;
 
-    // Ejemplo de ghost y fruit
-    partida->ghosts[0].x = 4;
-    partida->ghosts[0].y = 3;
-    strcpy(partida->ghosts[0].color, "red");
-    partida->num_ghosts = 1;
+    // Ejemplo de ghost y fruit crearlos y la posición inicial
+    //partida->ghosts[0].x = 4;
+   // partida->ghosts[0].y = 3;
+   // strcpy(partida->ghosts[0].color, "red");
+   //partida->num_ghosts = 1;
+    
+   generar_fantasmas(partida, nuevo_jugador.x, nuevo_jugador.y);
+   
 
     partida->fruits[0].x = 4;
     partida->fruits[0].y = 5;
