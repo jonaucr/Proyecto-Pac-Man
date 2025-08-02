@@ -277,6 +277,25 @@ void handle_move(cJSON* payload, int client_fd) {
         printf("Movimiento bloqueado por pared o fuera de límites\n");
     }
 
+     // Mover fantasmas después de mover al jugador
+    for (int i = 0; i < partida->num_ghosts; i++) {
+        int dir = rand() % 4; // 0: arriba, 1: abajo, 2: izquierda, 3: derecha
+        int gx = partida->ghosts[i].x;
+        int gy = partida->ghosts[i].y;
+        int new_gx = gx, new_gy = gy;
+        if (dir == 0) new_gy--;
+        else if (dir == 1) new_gy++;
+        else if (dir == 2) new_gx--;
+        else if (dir == 3) new_gx++;
+
+        // Validar que no se mueva a una pared ni salga del mapa
+        if (new_gx >= 0 && new_gx < MAP_WIDTH && new_gy >= 0 && new_gy < MAP_HEIGHT &&
+            partida->map[new_gy][new_gx] != 1) {
+            partida->ghosts[i].x = new_gx;
+            partida->ghosts[i].y = new_gy;
+        }
+    }
+
     // Opcional: enviar el nuevo estado al cliente
     enviar_estado_juego(partida, client_fd);
 }
