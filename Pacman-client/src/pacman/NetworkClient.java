@@ -46,6 +46,17 @@ public class NetworkClient {
         }
     }
 
+    public void enviarMovimiento(String direccion) {
+        if (out != null) {
+            // Direcciones válidas: "up", "down", "left", "right"
+            String json = "{\"type\":\"move\",\"payload\":{\"direction\":\"" + direccion + "\"}}";
+            out.println(json);
+            System.out.println(">> [NetworkClient] Enviando al servidor: " + json);
+        } else {
+            System.err.println("Error: No se ha establecido conexión para enviar movimiento.");
+        }
+    }
+
 
     public String recibirMensaje() throws IOException {
         return in.readLine();
