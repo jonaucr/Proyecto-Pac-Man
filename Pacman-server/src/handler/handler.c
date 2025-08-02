@@ -34,37 +34,49 @@ void dispatch_message(const char* type, cJSON* payload, int client_fd) {
     printf("Tipo de mensaje desconocido: %s\n", type);
 }
 
-// Genera dos fantasmas en posiciones aleatorias válidas
+// Genera cuatro fantasmas en posiciones aleatorias válidas
 void generar_fantasmas(Game* partida, int player_x, int player_y) {
-    int x1, y1, x2, y2;
-    // Fantasma 1 (verde)
-    do {
-        x1 = rand() % MAP_WIDTH;
-        y1 = rand() % MAP_HEIGHT;
-    } while (
-        partida->map[y1][x1] == 1 || // No pared
-        (x1 == player_x && y1 == player_y) // No sobre el jugador
-    );
+    int pos[4][2];
+    int count = 0;
+    while (count < 4) {
+        int x = rand() % MAP_WIDTH;
+        int y = rand() % MAP_HEIGHT;
+        int ocupado = 0;
+        // No sobre el jugador
+        if (x == player_x && y == player_y) continue;
+        // No sobre una pared
+        if (partida->map[y][x] == 1) continue;
+        // No sobre otro fantasma
+        for (int i = 0; i < count; i++) {
+            if (pos[i][0] == x && pos[i][1] == y) {
+                ocupado = 1;
+                break;
+            }
+        }
+        if (ocupado) continue;
+        pos[count][0] = x;
+        pos[count][1] = y;
+        count++;
+    }
 
-    // Fantasma 2 (celeste)
-    do {
-        x2 = rand() % MAP_WIDTH;
-        y2 = rand() % MAP_HEIGHT;
-    } while (
-        partida->map[y2][x2] == 1 || // No pared
-        (x2 == player_x && y2 == player_y) || // No sobre el jugador
-        (x2 == x1 && y2 == y1) // No sobre el otro fantasma
-    );
+    // Asignar posiciones y colores
+    partida->ghosts[0].x = pos[0][0];
+    partida->ghosts[0].y = pos[0][1];
+    strcpy(partida->ghosts[0].color, "red");      // Blinky
 
-    partida->ghosts[0].x = x1;
-    partida->ghosts[0].y = y1;
-    strcpy(partida->ghosts[0].color, "green");
+    partida->ghosts[1].x = pos[1][0];
+    partida->ghosts[1].y = pos[1][1];
+    strcpy(partida->ghosts[1].color, "magenta");     // Pinky
 
-    partida->ghosts[1].x = x2;
-    partida->ghosts[1].y = y2;
-    strcpy(partida->ghosts[1].color, "cyan"); // celeste
+    partida->ghosts[2].x = pos[2][0];
+    partida->ghosts[2].y = pos[2][1];
+    strcpy(partida->ghosts[2].color, "blue");     // Inky (azul claro)
 
-    partida->num_ghosts = 2;
+    partida->ghosts[3].x = pos[3][0];
+    partida->ghosts[3].y = pos[3][1];
+    strcpy(partida->ghosts[3].color, "orange");   // Clyde
+
+    partida->num_ghosts = 4;
 }
 
 //Handle para crear una partida
