@@ -296,6 +296,38 @@ void handle_move(cJSON* payload, int client_fd) {
         }
     }
 
+     
+        // Verificar colisión con fantasmas
+    int colision = 0;
+    for (int i = 0; i < partida->num_ghosts; i++) {
+        if (jugador->x == partida->ghosts[i].x && jugador->y == partida->ghosts[i].y) {
+            colision = 1;
+            break;
+        }
+    }
+
+    if (colision) {
+        jugador->lives--;
+        printf("¡Pac-Man perdió una vida! Vidas restantes: %d\n", jugador->lives);
+
+        if (jugador->lives <= 0) {
+            // Enviar mensaje de game over
+            cJSON* respuesta = cJSON_CreateObject();
+            cJSON_AddStringToObject(respuesta, "type", "game_over");
+            cJSON* payload_resp = cJSON_CreateObject();
+            cJSON_AddStringToObject(payload_resp, "mensaje", "Juego terminado");
+            cJSON_AddItemToObject(respuesta, "payload", payload_resp);
+            enviar_json(client_fd, respuesta);
+            cJSON_Delete(respuesta);
+            printf("Juego terminado\n");
+            return;
+        }
+    }
+
+    // Enviar el nuevo estado al cliente
+    enviar_estado_juego(partida, client_fd);
+
+
     // Opcional: enviar el nuevo estado al cliente
     enviar_estado_juego(partida, client_fd);
 }
