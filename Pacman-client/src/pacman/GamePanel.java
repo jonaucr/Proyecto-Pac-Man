@@ -60,12 +60,12 @@ public class GamePanel extends JPanel {
             g.setColor(Color.YELLOW);
             drawPacman(g, p);
         }
+        // Dibuja los fantasmas con forma clásica
+for (Ghost ghost : game.ghosts) {
+    drawGhost(g, ghost.x, ghost.y, ghost.color);
+}
 
-        // Dibuja los fantasmas
-        g.setColor(Color.RED);
-        for (Ghost ghost : game.ghosts) {
-            g.fillRect(ghost.x * 20, ghost.y * 20, 20, 20);
-        }
+       
     }
 
     private void drawPacman(Graphics g, Player p) {
@@ -89,6 +89,40 @@ public class GamePanel extends JPanel {
         for (Fruit fruit : game.fruits) {
             g.fillOval(fruit.x * 20, fruit.y * 20, 20, 20);
         }
+
+         // Dibuja un fantasma clásico de Pac-Man
+    private void drawGhost(Graphics g, int x, int y, String color) {
+        Graphics2D g2 = (Graphics2D) g;
+        Color ghostColor;
+        switch (color.toLowerCase()) {
+            case "red": ghostColor = Color.RED; break;
+            case "pink": ghostColor = Color.PINK; break;
+            case "cyan": ghostColor = Color.CYAN; break;
+            case "orange": ghostColor = Color.ORANGE; break;
+            default: ghostColor = Color.GRAY; break;
+        }
+        int px = x * 20;
+        int py = y * 20;
+        g2.setColor(ghostColor);
+        g2.fillArc(px, py, 20, 20, 0, 180); // cabeza
+        g2.fillRect(px, py + 10, 20, 10); // cuerpo
+
+        // ondas de la base
+        for (int i = 0; i < 3; i++) {
+            g2.fillOval(px + i * 7, py + 15, 7, 7);
+        }
+
+        // ojos
+        g2.setColor(Color.WHITE);
+        g2.fillOval(px + 4, py + 7, 5, 7);
+        g2.fillOval(px + 11, py + 7, 5, 7);
+
+        // pupilas
+        g2.setColor(Color.BLUE);
+        g2.fillOval(px + 6, py + 11, 2, 3);
+        g2.fillOval(px + 13, py + 11, 2, 3);
     }
+
+
 
 }
