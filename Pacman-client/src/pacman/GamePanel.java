@@ -55,74 +55,66 @@ public class GamePanel extends JPanel {
             }
         }
 
-        // Dibuja el jugador
-        for (Player p : game.players) {
-            g.setColor(Color.YELLOW);
-            drawPacman(g, p);
-        }
-        // Dibuja los fantasmas con forma clásica
+ // Dibuja el jugador
+for (Player p : game.players) {
+    g.setColor(Color.YELLOW);
+    drawPacman(g, p);
+}
+// Dibuja los fantasmas con forma clásica
 for (Ghost ghost : game.ghosts) {
     drawGhost(g, ghost.x, ghost.y, ghost.color);
 }
-
-       
-    }
-
-    private void drawPacman(Graphics g, Player p) {
-        int startAngle = 0;
-        int arcAngle = 360;
-
-        if (isMouthOpen) {
-            arcAngle = 280; // Boca abierta
-            // Asumimos que el objeto Player tiene una propiedad 'direction'
-            // que el servidor nos envía. Como el campo 'direction' no existe en la clase Player,
-            // la boca apuntará a la derecha por ahora para que el código compile.
-            // La solución real es añadir 'public String direction;' a la clase Player.
-            startAngle = 20; // Apuntar a la derecha
-
-        }
-        // Si la boca está cerrada, startAngle=0 y arcAngle=360 dibujan un círculo completo.
-        g.fillArc(p.x * 20, p.y * 20, 20, 20, startAngle, arcAngle);
-
-        // Dibuja las frutas
-        g.setColor(Color.GREEN);
-        for (Fruit fruit : game.fruits) {
-            g.fillOval(fruit.x * 20, fruit.y * 20, 20, 20);
-        }
-
-         // Dibuja un fantasma clásico de Pac-Man
-    private void drawGhost(Graphics g, int x, int y, String color) {
-        Graphics2D g2 = (Graphics2D) g;
-        Color ghostColor;
-        switch (color.toLowerCase()) {
-            case "red": ghostColor = Color.RED; break;
-            case "pink": ghostColor = Color.PINK; break;
-            case "cyan": ghostColor = Color.CYAN; break;
-            case "orange": ghostColor = Color.ORANGE; break;
-            default: ghostColor = Color.GRAY; break;
-        }
-        int px = x * 20;
-        int py = y * 20;
-        g2.setColor(ghostColor);
-        g2.fillArc(px, py, 20, 20, 0, 180); // cabeza
-        g2.fillRect(px, py + 10, 20, 10); // cuerpo
-
-        // ondas de la base
-        for (int i = 0; i < 3; i++) {
-            g2.fillOval(px + i * 7, py + 15, 7, 7);
-        }
-
-        // ojos
-        g2.setColor(Color.WHITE);
-        g2.fillOval(px + 4, py + 7, 5, 7);
-        g2.fillOval(px + 11, py + 7, 5, 7);
-
-        // pupilas
-        g2.setColor(Color.BLUE);
-        g2.fillOval(px + 6, py + 11, 2, 3);
-        g2.fillOval(px + 13, py + 11, 2, 3);
-    }
-
-
-
 }
+
+// Método para dibujar Pac-Man
+private void drawPacman(Graphics g, Player p) {
+    int startAngle = 0;
+    int arcAngle = 360;
+
+    if (isMouthOpen) {
+        arcAngle = 280; // Boca abierta
+        startAngle = 20; // Apuntar a la derecha
+    }
+    g.fillArc(p.x * 20, p.y * 20, 20, 20, startAngle, arcAngle);
+
+    // Dibuja las frutas
+    g.setColor(Color.GREEN);
+    for (Fruit fruit : game.fruits) {
+        g.fillOval(fruit.x * 20, fruit.y * 20, 20, 20);
+    }
+}
+
+// Método para dibujar un fantasma clásico de Pac-Man
+private void drawGhost(Graphics g, int x, int y, String color) {
+    Graphics2D g2 = (Graphics2D) g;
+    Color ghostColor;
+    switch (color.toLowerCase()) {
+        case "red": ghostColor = Color.RED; break;
+        case "pink": ghostColor = Color.PINK; break;
+        case "cyan": ghostColor = Color.CYAN; break;
+        case "orange": ghostColor = Color.ORANGE; break;
+        default: ghostColor = Color.GRAY; break;
+    }
+    int px = x * 20;
+    int py = y * 20;
+    g2.setColor(ghostColor);
+    g2.fillArc(px, py, 20, 20, 0, 180); // cabeza
+    g2.fillRect(px, py + 10, 20, 10); // cuerpo
+
+    // ondas de la base
+    for (int i = 0; i < 3; i++) {
+        g2.fillOval(px + i * 7, py + 15, 7, 7);
+    }
+
+    // ojos
+    g2.setColor(Color.WHITE);
+    g2.fillOval(px + 4, py + 7, 5, 7);
+    g2.fillOval(px + 11, py + 7, 5, 7);
+
+    // pupilas
+    g2.setColor(Color.BLUE);
+    g2.fillOval(px + 6, py + 11, 2, 3);
+    g2.fillOval(px + 13, py + 11, 2, 3);
+}
+}
+
