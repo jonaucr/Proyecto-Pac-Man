@@ -1,12 +1,12 @@
 // GameFrame.java
 package pacman;
 
-import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.KeyEvent;
 import java.io.IOException;
 import java.util.List;
+import javax.swing.*;
 import pacman.Entidades.Game;
 
 public class GameFrame extends JFrame {
@@ -85,7 +85,8 @@ public class GameFrame extends JFrame {
     }
 
     private void startGameLoop() {
-        SwingWorker<Void, Game> worker = new SwingWorker<>() {
+        SwingWorker<Void, Game> worker;
+        worker = new SwingWorker<>() {
             @Override
             protected Void doInBackground() throws Exception {
                 try {

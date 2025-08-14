@@ -8,13 +8,11 @@
 #define WALL 1
 #define PATH 0
 #define FRUIT 2
+
 Game partidas[MAX_GAMES];
 int num_partidas = 0;
 
-
 void inicializar_mapa(int map[MAP_HEIGHT][MAP_WIDTH]) {
-    // Plantilla del laberinto. 1 = Muro (WALL), 0 = Pasillo (PATH)
-    // Puedes diseñar visualmente tu nivel aquí.
     int level_template[MAP_HEIGHT][MAP_WIDTH] = {
         {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1},
         {1,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,1},
@@ -39,8 +37,15 @@ void inicializar_mapa(int map[MAP_HEIGHT][MAP_WIDTH]) {
             map[y][x] = level_template[y][x];
         }
     }
-}
-
+    // Agrega puntos en todos los pasillos
+    for (int y = 0; y < MAP_HEIGHT; y++) {
+        for (int x = 0; x < MAP_WIDTH; x++) {
+            if (map[y][x] == 0) {
+                map[y][x] = 2; // 2 representa un punto
+            }
+        }
+    }
+ }
 Game crear_nueva_partida(char *id) {
     Game game;
     strncpy(game.id, id, sizeof(game.id) - 1);
@@ -58,8 +63,6 @@ Game crear_nueva_partida(char *id) {
     memset(game.observers, 0, sizeof(game.observers));
     memset(game.ghosts, 0, sizeof(game.ghosts));
     memset(game.fruits, 0, sizeof(game.fruits));
-
-   
 
     return game;
 }

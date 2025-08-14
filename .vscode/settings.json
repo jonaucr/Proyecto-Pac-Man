@@ -11,5 +11,6 @@
         // El patrón 'lib/**/*.jar' incluye todos los archivos .jar dentro de la carpeta lib.
         "Pacman-client/lib/**/*.jar",
         "PacmanClient/lib/**/*.jar"
-    ]
+    ],
+    "C_Cpp.errorSquiggles": "disabled"
 }
