@@ -43,9 +43,9 @@ public class GamePanel extends JPanel {
                     g.fillRect(x * 20, y * 20, 20, 20);
                 }
 
-                // Punto
+                // Punto (ahora amarillo)
                 if (cell == 2) {
-                    g.setColor(Color.WHITE);
+                    g.setColor(Color.YELLOW);
                     int px = x * 20 + 8;
                     int py = y * 20 + 8;
                     g.fillOval(px, py, 4, 4);
