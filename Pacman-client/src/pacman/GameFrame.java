@@ -134,7 +134,7 @@ public class GameFrame extends JFrame {
             @Override
             protected void done() {
                 // Se ejecuta cuando el bucle en doInBackground termina
-                JOptionPane.showMessageDialog(GameFrame.this, "Se ha perdido la conexión con el servidor.", "Desconectado", JOptionPane.INFORMATION_MESSAGE);
+                JOptionPane.showMessageDialog(GameFrame.this, "Se ha perdido las vidas por tocar fantasmas, inicia de nuevo.", "Desconectado", JOptionPane.INFORMATION_MESSAGE);
                 // Ejecuta la acción de finalización que nos pasaron (ej: mostrar el menú principal)
                 onGameEnd.run();
                 GameFrame.this.dispose();
