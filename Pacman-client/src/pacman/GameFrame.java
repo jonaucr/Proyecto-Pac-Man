@@ -8,11 +8,15 @@ import java.io.IOException;
 import java.util.List;
 import javax.swing.*;
 import pacman.Entidades.Game;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser; // <-- añadir
+// ...existing code...
 
 public class GameFrame extends JFrame {
     private JLabel lblId;
     private JLabel lblScore;
     private JLabel lblLives;
+    private JLabel lblSpectators; // <-- añadir campo
     private GamePanel gamePanel;
     private final NetworkClient networkClient;
     private final Runnable onGameEnd;
@@ -37,9 +41,11 @@ public class GameFrame extends JFrame {
         lblId = new JLabel("ID Partida: " + initialGame.id);
         lblScore = new JLabel("Puntos: " + initialGame.players.get(0).score);
         lblLives = new JLabel("Vidas: " + initialGame.players.get(0).lives);
+        lblSpectators = new JLabel("Observadores: 0"); // <-- inicializar label
         infoPanel.add(lblId);
         infoPanel.add(lblScore);
         infoPanel.add(lblLives);
+        infoPanel.add(lblSpectators); // <-- añadir al panel
 
         add(infoPanel, BorderLayout.NORTH);
 
@@ -51,38 +57,7 @@ public class GameFrame extends JFrame {
         setupKeyBindings();
         startGameLoop();
     }
-
-    private void setupKeyBindings() {
-        InputMap inputMap = gamePanel.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW);
-        ActionMap actionMap = gamePanel.getActionMap();
-
-        // 1. Definimos las acciones para cada dirección una sola vez.
-        //    Cada acción imprime la dirección y la envía al servidor.
-        String[] directions = {"up", "down", "left", "right"};
-        for (String dir : directions) {
-            actionMap.put(dir, new AbstractAction() {
-                @Override
-                public void actionPerformed(ActionEvent e) {
-                    // La clase NetworkClient ya imprime el JSON que se envía.
-                    System.out.println(">> [GameFrame] Tecla presionada: " + dir);
-                    networkClient.enviarMovimiento(dir);
-                }
-            });
-        }
-
-        // 2. Mapeamos las teclas a las acciones definidas.
-        // Mapeo para las teclas de flecha
-        inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_UP, 0), "up");
-        inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_DOWN, 0), "down");
-        inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_LEFT, 0), "left");
-        inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_RIGHT, 0), "right");
-
-        // Mapeo para las teclas WASD
-        inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_W, 0), "up");
-        inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_S, 0), "down");
-        inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_A, 0), "left");
-        inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_D, 0), "right");
-    }
+    // ...existing code...
 
     private void startGameLoop() {
         SwingWorker<Void, Game> worker;
@@ -95,9 +70,51 @@ public class GameFrame extends JFrame {
                         if (serverResponse == null) {
                             break; // El servidor cerró la conexión
                         }
-                        // El servidor envía el estado completo del juego en cada actualización
-                        Game updatedGame = Game.parseGameState(serverResponse);
-                        publish(updatedGame); // Envía el estado del juego al método process()
+
+                        // Parsear mensaje general con Gson
+                        JsonObject json = JsonParser.parseString(serverResponse).getAsJsonObject();
+                        String type = json.has("type") ? json.get("type").getAsString() : "";
+
+                        if ("game_state".equals(type)) {
+                            JsonObject payload = json.getAsJsonObject("payload");
+                            int spectators = payload.has("spectators") ? payload.get("spectators").getAsInt() : 0;
+                            // Actualizar contador de observadores en el EDT
+                            SwingUtilities.invokeLater(() -> lblSpectators.setText("Observadores: " + spectators));
+
+                            // Convertir el estado a Game y publicar para repintar
+                            Game updatedGame = Game.parseGameState(serverResponse);
+                            publish(updatedGame);
+
+                        } else if ("player_hit".equals(type)) {
+                            JsonObject payload = json.getAsJsonObject("payload");
+                            int lives = payload.has("lives") ? payload.get("lives").getAsInt() : 0;
+                            int score = payload.has("score") ? payload.get("score").getAsInt() : 0;
+                            String mensaje = payload.has("mensaje") ? payload.get("mensaje").getAsString() : "Golpeado";
+
+                            // Actualizar UI (vidas/puntos) y mostrar notificación breve
+                            SwingUtilities.invokeLater(() -> {
+                                lblLives.setText("Vidas: " + lives);
+                                lblScore.setText("Puntos: " + score);
+                                JOptionPane.showMessageDialog(GameFrame.this, mensaje + " (Vidas: " + lives + ")", "Golpe", JOptionPane.INFORMATION_MESSAGE);
+                            });
+
+                        } else if ("game_over".equals(type)) {
+                            JsonObject payload = json.getAsJsonObject("payload");
+                            int finalScore = payload.has("final_score") ? payload.get("final_score").getAsInt() : 0;
+                            String mensaje = payload.has("mensaje") ? payload.get("mensaje").getAsString() : "Juego terminado";
+
+                            SwingUtilities.invokeLater(() -> {
+                                JOptionPane.showMessageDialog(GameFrame.this, mensaje + "\nPuntaje final: " + finalScore, "Fin del juego", JOptionPane.INFORMATION_MESSAGE);
+                                // Ejecutar finalización y cerrar ventana
+                                onGameEnd.run();
+                                GameFrame.this.dispose();
+                            });
+                            // Después de game_over salimos del loop
+                            break;
+                        } else {
+                            // Mensaje desconocido: ignorar o loggear
+                            System.out.println("Mensaje desconocido recibido: " + type);
+                        }
                     }
                 } catch (IOException e) {
                     System.out.println("Conexión perdida con el servidor: " + e.getMessage());
@@ -130,6 +147,7 @@ public class GameFrame extends JFrame {
         lblId.setText("ID Partida: " + game.id);
         lblScore.setText("Puntos: " + game.players.get(0).score);
         lblLives.setText("Vidas: " + game.players.get(0).lives);
+        lblSpectators.setText("Observadores: " + game.num_spectators); // Actualizar contador de observadores
         gamePanel.setGame(game);
     }
 }

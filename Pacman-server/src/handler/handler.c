@@ -298,33 +298,35 @@ void handle_move(cJSON* payload, int client_fd) {
     }
 
     // Si hay colisión y jugador no está invulnerable, restar vida y notificar
-    if (colision && jugador->invulnerable == 0) {
+     if (colision && jugador->invulnerable == 0) {
         jugador->lives--;
         jugador->invulnerable = 2; // ticks de invulnerabilidad para evitar daño repetido
         printf("¡Pac-Man perdió una vida! Vidas restantes: %d\n", jugador->lives);
 
-        // Mensaje "player_hit"
+        // Mensaje "player_hit" (incluye vidas y score)
         {
             cJSON* hit_msg = cJSON_CreateObject();
             cJSON_AddStringToObject(hit_msg, "type", "player_hit");
             cJSON* payload_hit = cJSON_CreateObject();
             cJSON_AddStringToObject(payload_hit, "mensaje", "Pac-Man fue golpeado");
             cJSON_AddNumberToObject(payload_hit, "lives", jugador->lives);
+            cJSON_AddNumberToObject(payload_hit, "score", jugador->score); // <-- añadir score
             cJSON_AddItemToObject(hit_msg, "payload", payload_hit);
             enviar_json(client_fd, hit_msg);
             cJSON_Delete(hit_msg);
         }
 
-        // Si se quedaron sin vidas, enviar game_over y terminar handler
+        // Si se quedaron sin vidas, enviar game_over con puntaje final y terminar handler
         if (jugador->lives <= 0) {
             cJSON* respuesta = cJSON_CreateObject();
             cJSON_AddStringToObject(respuesta, "type", "game_over");
             cJSON* payload_resp = cJSON_CreateObject();
             cJSON_AddStringToObject(payload_resp, "mensaje", "Juego terminado");
+            cJSON_AddNumberToObject(payload_resp, "final_score", jugador->score); // <-- puntaje final
             cJSON_AddItemToObject(respuesta, "payload", payload_resp);
             enviar_json(client_fd, respuesta);
             cJSON_Delete(respuesta);
-            printf("Juego terminado\n");
+            printf("Juego terminado. Puntaje final: %d\n", jugador->score);
             return;
         }
     }
@@ -355,13 +357,15 @@ void enviar_estado_juego(Game* partida, int client_fd) {
     }
     cJSON_AddItemToObject(payload_resp, "map", mapa_arr);
 
-    // Players
+    
+      // Players
     cJSON* players_arr = cJSON_CreateArray();
     for (int i = 0; i < partida->num_players; i++) {
         cJSON* player_json = cJSON_CreateObject();
         cJSON_AddNumberToObject(player_json, "x", partida->players[i].x);
         cJSON_AddNumberToObject(player_json, "y", partida->players[i].y);
         cJSON_AddNumberToObject(player_json, "score", partida->players[i].score);
+        cJSON_AddNumberToObject(player_json, "lives", partida->players[i].lives); 
         cJSON_AddItemToArray(players_arr, player_json);
     }
     cJSON_AddItemToObject(payload_resp, "players", players_arr);
@@ -376,6 +380,7 @@ void enviar_estado_juego(Game* partida, int client_fd) {
         cJSON_AddItemToArray(ghosts_arr, ghost_json);
     }
     cJSON_AddItemToObject(payload_resp, "ghosts", ghosts_arr);
+
 
     // Fruits
     cJSON* fruits_arr = cJSON_CreateArray();
