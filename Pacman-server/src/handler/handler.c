@@ -108,6 +108,7 @@ void handle_create_game(cJSON* payload, int client_fd) {
     nuevo_jugador.score = 0;
     nuevo_jugador.socket = client_port;
     nuevo_jugador.lives = 3; // Inicializa vidas
+    nuevo_jugador.invulnerable = 0;
     partida->players[0] = nuevo_jugador;
     partida->num_players = 1;
 
@@ -232,20 +233,13 @@ void handle_move(cJSON* payload, int client_fd) {
         printf("Puerto del cliente: %d\n", client_port);
     }
 
-    printf("Dirección: %s\n", direction);
-    printf("ID de la partida: %s\n", partidas[0].id);
-    printf("ID del jugador: %d\n", partidas[0].players[0].x);
-    printf("ID del cliente: %d\n", client_port);
-    printf(num_partidas > 0 ? "Número de partidas: %d\n" : "No hay partidas\n", num_partidas);
-    
     // Buscar la partida y el jugador por el socket
     Game* partida = NULL;
     Player* jugador = NULL;
-    
+
     for (int i = 0; i < num_partidas; i++) {
         for (int j = 0; j < partidas[i].num_players; j++) {
             if (partidas[i].players[j].socket == client_port) {
-                printf("Jugador encontrado en partida %s\n", partidas[i].id);
                 partida = &partidas[i];
                 jugador = &partidas[i].players[j];
                 break;
@@ -258,7 +252,7 @@ void handle_move(cJSON* payload, int client_fd) {
         return;
     }
 
-    // Calcular nueva posición
+    // Calcular nueva posición del jugador
     int new_x = jugador->x;
     int new_y = jugador->y;
     if (strcmp(direction, "up") == 0) new_y--;
@@ -266,10 +260,9 @@ void handle_move(cJSON* payload, int client_fd) {
     else if (strcmp(direction, "left") == 0) new_x--;
     else if (strcmp(direction, "right") == 0) new_x++;
 
-    // Validar que no se mueva a una pared
+    // Validar movimiento del jugador (no muro, dentro del mapa)
     if (new_x >= 0 && new_x < MAP_WIDTH && new_y >= 0 && new_y < MAP_HEIGHT &&
-        partida->map[new_y][new_x] != 1) { // 1 representa una pared
-        // Actualizar posición del jugador
+        partida->map[new_y][new_x] != WALL) {
         jugador->x = new_x;
         jugador->y = new_y;
         printf("Jugador movido a (%d, %d)\n", jugador->x, jugador->y);
@@ -277,7 +270,7 @@ void handle_move(cJSON* payload, int client_fd) {
         printf("Movimiento bloqueado por pared o fuera de límites\n");
     }
 
-     // Mover fantasmas después de mover al jugador
+    // Mover fantasmas (uno aleatorio por fantasma) después de mover al jugador
     for (int i = 0; i < partida->num_ghosts; i++) {
         int dir = rand() % 4; // 0: arriba, 1: abajo, 2: izquierda, 3: derecha
         int gx = partida->ghosts[i].x;
@@ -288,16 +281,14 @@ void handle_move(cJSON* payload, int client_fd) {
         else if (dir == 2) new_gx--;
         else if (dir == 3) new_gx++;
 
-        // Validar que no se mueva a una pared ni salga del mapa
         if (new_gx >= 0 && new_gx < MAP_WIDTH && new_gy >= 0 && new_gy < MAP_HEIGHT &&
-            partida->map[new_gy][new_gx] != 1) {
+            partida->map[new_gy][new_gx] != WALL) {
             partida->ghosts[i].x = new_gx;
             partida->ghosts[i].y = new_gy;
         }
     }
 
-     
-        // Verificar colisión con fantasmas
+    // Verificar colisión con fantasmas
     int colision = 0;
     for (int i = 0; i < partida->num_ghosts; i++) {
         if (jugador->x == partida->ghosts[i].x && jugador->y == partida->ghosts[i].y) {
@@ -306,12 +297,26 @@ void handle_move(cJSON* payload, int client_fd) {
         }
     }
 
-    if (colision) {
+    // Si hay colisión y jugador no está invulnerable, restar vida y notificar
+    if (colision && jugador->invulnerable == 0) {
         jugador->lives--;
+        jugador->invulnerable = 2; // ticks de invulnerabilidad para evitar daño repetido
         printf("¡Pac-Man perdió una vida! Vidas restantes: %d\n", jugador->lives);
 
+        // Mensaje "player_hit"
+        {
+            cJSON* hit_msg = cJSON_CreateObject();
+            cJSON_AddStringToObject(hit_msg, "type", "player_hit");
+            cJSON* payload_hit = cJSON_CreateObject();
+            cJSON_AddStringToObject(payload_hit, "mensaje", "Pac-Man fue golpeado");
+            cJSON_AddNumberToObject(payload_hit, "lives", jugador->lives);
+            cJSON_AddItemToObject(hit_msg, "payload", payload_hit);
+            enviar_json(client_fd, hit_msg);
+            cJSON_Delete(hit_msg);
+        }
+
+        // Si se quedaron sin vidas, enviar game_over y terminar handler
         if (jugador->lives <= 0) {
-            // Enviar mensaje de game over
             cJSON* respuesta = cJSON_CreateObject();
             cJSON_AddStringToObject(respuesta, "type", "game_over");
             cJSON* payload_resp = cJSON_CreateObject();
@@ -324,11 +329,10 @@ void handle_move(cJSON* payload, int client_fd) {
         }
     }
 
+    // Reducir contador de invulnerabilidad si aplica
+    if (jugador->invulnerable > 0) jugador->invulnerable--;
+
     // Enviar el nuevo estado al cliente
-    enviar_estado_juego(partida, client_fd);
-
-
-    // Opcional: enviar el nuevo estado al cliente
     enviar_estado_juego(partida, client_fd);
 }
 
@@ -389,11 +393,6 @@ void enviar_estado_juego(Game* partida, int client_fd) {
     enviar_json(client_fd, respuesta);
     cJSON_Delete(respuesta);
 }
-
-
-
-
-
 
 
 void handle_update_score(cJSON* payload, int client_fd) {
