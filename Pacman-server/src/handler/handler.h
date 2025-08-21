@@ -24,6 +24,7 @@ void handle_move(cJSON* payload, int client_fd);
 void handle_update_score(cJSON* payload, int client_fd);
 void handle_join_game(cJSON* payload, int client_fd);
 void handle_leave_game(cJSON* payload, int client_fd);
+void handle_join_spectator(cJSON* payload, int client_fd);
 // ...agrega aquí todos los tipos que necesites
 
 #endif

@@ -7,7 +7,7 @@
 
 #define WALL 1
 #define PATH 0
-#define FRUIT 2
+#define DOT 2
 
 Game partidas[MAX_GAMES];
 int num_partidas = 0;
@@ -41,7 +41,7 @@ void inicializar_mapa(int map[MAP_HEIGHT][MAP_WIDTH]) {
     for (int y = 0; y < MAP_HEIGHT; y++) {
         for (int x = 0; x < MAP_WIDTH; x++) {
             if (map[y][x] == 0) {
-                map[y][x] = 2; // 2 representa un punto
+                map[y][x] = DOT; // 2 representa un punto
             }
         }
     }

@@ -6,8 +6,11 @@
 #include "game/game.h"
 #include "protocol/protocol.h"
 #include <stdlib.h> // Para rand() y srand()
+#include <limits.h> // Para INT_MAX
 
 
+void broadcast_game_state(Game* partida);
+void broadcast_message(Game* partida, cJSON* message);
 void enviar_estado_juego(Game* partida, int client_fd);
 
 // Tabla de handlers
@@ -15,6 +18,7 @@ static MessageHandlerEntry handlers[] = {
     {"create_game", handle_create_game},
     {"disconnect", handle_disconnect},
     {"move", handle_move},
+    {"join_spectator", handle_join_spectator},
     {"update_score", handle_update_score},
     {"join_game", handle_join_game},
     {"leave_game", handle_leave_game},
@@ -62,19 +66,27 @@ void generar_fantasmas(Game* partida, int player_x, int player_y) {
     // Asignar posiciones y colores
     partida->ghosts[0].x = pos[0][0];
     partida->ghosts[0].y = pos[0][1];
-    strcpy(partida->ghosts[0].color, "red");      // Blinky
+    partida->ghosts[0].start_x = pos[0][0];
+    partida->ghosts[0].start_y = pos[0][1];
+    strcpy(partida->ghosts[0].color, "red"); // Blinky
 
     partida->ghosts[1].x = pos[1][0];
     partida->ghosts[1].y = pos[1][1];
-    strcpy(partida->ghosts[1].color, "magenta");     // Pinky
+    partida->ghosts[1].start_x = pos[1][0];
+    partida->ghosts[1].start_y = pos[1][1];
+    strcpy(partida->ghosts[1].color, "magenta"); // Pinky
 
     partida->ghosts[2].x = pos[2][0];
     partida->ghosts[2].y = pos[2][1];
-    strcpy(partida->ghosts[2].color, "blue");     // Inky (azul claro)
+    partida->ghosts[2].start_x = pos[2][0];
+    partida->ghosts[2].start_y = pos[2][1];
+    strcpy(partida->ghosts[2].color, "blue"); // Inky (azul claro)
 
     partida->ghosts[3].x = pos[3][0];
     partida->ghosts[3].y = pos[3][1];
-    strcpy(partida->ghosts[3].color, "orange");   // Clyde
+    partida->ghosts[3].start_x = pos[3][0];
+    partida->ghosts[3].start_y = pos[3][1];
+    strcpy(partida->ghosts[3].color, "orange"); // Clyde
 
     partida->num_ghosts = 4;
 }
@@ -106,7 +118,7 @@ void handle_create_game(cJSON* payload, int client_fd) {
     nuevo_jugador.x = 2;
     nuevo_jugador.y = 1;
     nuevo_jugador.score = 0;
-    nuevo_jugador.socket = client_port;
+    nuevo_jugador.socket = client_fd; // Usar el file descriptor como ID único
     nuevo_jugador.lives = 3; // Inicializa vidas
     nuevo_jugador.invulnerable = 0;
     partida->players[0] = nuevo_jugador;
@@ -224,22 +236,13 @@ void handle_move(cJSON* payload, int client_fd) {
     }
     const char* direction = dir_json->valuestring;
 
-    // Obtener el puerto del cliente
-    struct sockaddr_in addr;
-    socklen_t addr_len = sizeof(addr);
-    int client_port = 0;
-    if (getpeername(client_fd, (struct sockaddr*)&addr, &addr_len) == 0) {
-        client_port = ntohs(addr.sin_port);
-        printf("Puerto del cliente: %d\n", client_port);
-    }
-
-    // Buscar la partida y el jugador por el socket
+    // Buscar la partida y el jugador por el file descriptor del socket
     Game* partida = NULL;
     Player* jugador = NULL;
 
     for (int i = 0; i < num_partidas; i++) {
         for (int j = 0; j < partidas[i].num_players; j++) {
-            if (partidas[i].players[j].socket == client_port) {
+            if (partidas[i].players[j].socket == client_fd) {
                 partida = &partidas[i];
                 jugador = &partidas[i].players[j];
                 break;
@@ -263,6 +266,41 @@ void handle_move(cJSON* payload, int client_fd) {
     // Validar movimiento del jugador (no muro, dentro del mapa)
     if (new_x >= 0 && new_x < MAP_WIDTH && new_y >= 0 && new_y < MAP_HEIGHT &&
         partida->map[new_y][new_x] != WALL) {
+
+        // --- LÓGICA DE PUNTUACIÓN Y VICTORIA ---
+        // 1. Verificar si la nueva casilla tiene un punto (valor 2)
+        if (partida->map[new_y][new_x] == DOT) {
+            jugador->score += 1; // Incrementar puntaje
+            partida->map[new_y][new_x] = PATH; // Eliminar el punto del mapa (convertirlo en camino)
+            printf("Jugador comió un punto. Score: %d\n", jugador->score);
+
+            // 2. Comprobar si quedan más puntos en el mapa (condición de victoria)
+            int puntos_restantes = 0;
+            for (int y = 0; y < MAP_HEIGHT; y++) {
+                for (int x = 0; x < MAP_WIDTH; x++) {
+                    if (partida->map[y][x] == DOT) {
+                        puntos_restantes = 1; // Encontramos un punto, el juego sigue
+                        break;
+                    }
+                }
+                if (puntos_restantes) break;
+            }
+
+            // 3. Si no quedan puntos, el jugador gana
+            if (!puntos_restantes) {
+                cJSON* win_msg = cJSON_CreateObject();
+                cJSON_AddStringToObject(win_msg, "type", "game_win");
+                cJSON* payload_win = cJSON_CreateObject();
+                cJSON_AddStringToObject(payload_win, "mensaje", "¡Felicidades! Has comido todos los puntos.");
+                cJSON_AddNumberToObject(payload_win, "final_score", jugador->score);
+                cJSON_AddItemToObject(win_msg, "payload", payload_win);
+                broadcast_message(partida, win_msg); // <-- CAMBIO: Notificar a todos
+                cJSON_Delete(win_msg);
+                printf("¡Juego ganado! Puntaje final: %d\n", jugador->score);
+                return; // Termina el handler aquí, ya no es necesario enviar game_state
+            }
+        }
+
         jugador->x = new_x;
         jugador->y = new_y;
         printf("Jugador movido a (%d, %d)\n", jugador->x, jugador->y);
@@ -270,72 +308,85 @@ void handle_move(cJSON* payload, int client_fd) {
         printf("Movimiento bloqueado por pared o fuera de límites\n");
     }
 
-    // Mover fantasmas (uno aleatorio por fantasma) después de mover al jugador
+    // --- LÓGICA DE MOVIMIENTO DE FANTASMAS (HÍBRIDO: INTELIGENTE + ALEATORIO) ---
     for (int i = 0; i < partida->num_ghosts; i++) {
-        int dir = rand() % 4; // 0: arriba, 1: abajo, 2: izquierda, 3: derecha
-        int gx = partida->ghosts[i].x;
-        int gy = partida->ghosts[i].y;
-        int new_gx = gx, new_gy = gy;
-        if (dir == 0) new_gy--;
-        else if (dir == 1) new_gy++;
-        else if (dir == 2) new_gx--;
-        else if (dir == 3) new_gx++;
+        Ghost* fantasma = &partida->ghosts[i];
+        int px = jugador->x;
+        int py = jugador->y;
+        int posibles_movimientos[4][2] = {{0, -1}, {0, 1}, {-1, 0}, {1, 0}};
+        int chance = rand() % 100; // Genera un número entre 0 y 99
 
-        if (new_gx >= 0 && new_gx < MAP_WIDTH && new_gy >= 0 && new_gy < MAP_HEIGHT &&
-            partida->map[new_gy][new_gx] != WALL) {
-            partida->ghosts[i].x = new_gx;
-            partida->ghosts[i].y = new_gy;
+        // 50% de probabilidad de moverse inteligentemente, 50% de moverse al azar
+        if (chance < 50) {
+            // --- LÓGICA INTELIGENTE (PERSECUCIÓN) ---
+            int mejor_movimiento = -1, mejor_distancia = INT_MAX;
+            for (int j = 0; j < 4; j++) {
+                int n_gx = fantasma->x + posibles_movimientos[j][0], n_gy = fantasma->y + posibles_movimientos[j][1];
+                if (n_gx >= 0 && n_gx < MAP_WIDTH && n_gy >= 0 && n_gy < MAP_HEIGHT && partida->map[n_gy][n_gx] != WALL) {
+                    int dist = abs(n_gx - px) + abs(n_gy - py);
+                    if (dist < mejor_distancia) {
+                        mejor_distancia = dist;
+                        mejor_movimiento = j;
+                    }
+                }
+            }
+            if (mejor_movimiento != -1) {
+                fantasma->x += posibles_movimientos[mejor_movimiento][0];
+                fantasma->y += posibles_movimientos[mejor_movimiento][1];
+            }
+        } else {
+            // --- LÓGICA ALEATORIA ---
+            int dir = rand() % 4;
+            int n_gx = fantasma->x + posibles_movimientos[dir][0], n_gy = fantasma->y + posibles_movimientos[dir][1];
+            if (n_gx >= 0 && n_gx < MAP_WIDTH && n_gy >= 0 && n_gy < MAP_HEIGHT && partida->map[n_gy][n_gx] != WALL) {
+                fantasma->x = n_gx;
+                fantasma->y = n_gy;
+            }
         }
     }
 
-    // Verificar colisión con fantasmas
-    int colision = 0;
+    // --- LÓGICA DE COLISIÓN SIMPLE ---
     for (int i = 0; i < partida->num_ghosts; i++) {
         if (jugador->x == partida->ghosts[i].x && jugador->y == partida->ghosts[i].y) {
-            colision = 1;
-            break;
+            if (jugador->invulnerable == 0) {
+                jugador->lives--;
+                jugador->invulnerable = 10; // Ticks de invulnerabilidad post-golpe
+                printf("¡Pac-Man perdió una vida! Vidas restantes: %d\n", jugador->lives);
+
+                // Enviar mensaje "player_hit"
+                cJSON* hit_msg = cJSON_CreateObject();
+                cJSON_AddStringToObject(hit_msg, "type", "player_hit");
+                cJSON* payload_hit = cJSON_CreateObject();
+                cJSON_AddStringToObject(payload_hit, "mensaje", "Pac-Man fue golpeado");
+                cJSON_AddNumberToObject(payload_hit, "lives", jugador->lives);
+                cJSON_AddNumberToObject(payload_hit, "score", jugador->score);
+                cJSON_AddItemToObject(hit_msg, "payload", payload_hit);
+                enviar_json(client_fd, hit_msg);
+                cJSON_Delete(hit_msg);
+
+                // Si se quedó sin vidas, terminar el juego
+                if (jugador->lives <= 0) {
+                    cJSON* respuesta = cJSON_CreateObject();
+                    cJSON_AddStringToObject(respuesta, "type", "game_over");
+                    cJSON* payload_resp = cJSON_CreateObject();
+                    cJSON_AddStringToObject(payload_resp, "mensaje", "Juego terminado");
+                    cJSON_AddNumberToObject(payload_resp, "final_score", jugador->score);
+                    cJSON_AddItemToObject(respuesta, "payload", payload_resp);
+                    broadcast_message(partida, respuesta); // <-- CAMBIO: Notificar a todos
+                    cJSON_Delete(respuesta);
+                    printf("Juego terminado. Puntaje final: %d\n", jugador->score);
+                    return; // Terminar handler
+                }
+                break; // Solo un golpe por tick
+            }
         }
     }
 
-    // Si hay colisión y jugador no está invulnerable, restar vida y notificar
-     if (colision && jugador->invulnerable == 0) {
-        jugador->lives--;
-        jugador->invulnerable = 2; // ticks de invulnerabilidad para evitar daño repetido
-        printf("¡Pac-Man perdió una vida! Vidas restantes: %d\n", jugador->lives);
-
-        // Mensaje "player_hit" (incluye vidas y score)
-        {
-            cJSON* hit_msg = cJSON_CreateObject();
-            cJSON_AddStringToObject(hit_msg, "type", "player_hit");
-            cJSON* payload_hit = cJSON_CreateObject();
-            cJSON_AddStringToObject(payload_hit, "mensaje", "Pac-Man fue golpeado");
-            cJSON_AddNumberToObject(payload_hit, "lives", jugador->lives);
-            cJSON_AddNumberToObject(payload_hit, "score", jugador->score); // <-- añadir score
-            cJSON_AddItemToObject(hit_msg, "payload", payload_hit);
-            enviar_json(client_fd, hit_msg);
-            cJSON_Delete(hit_msg);
-        }
-
-        // Si se quedaron sin vidas, enviar game_over con puntaje final y terminar handler
-        if (jugador->lives <= 0) {
-            cJSON* respuesta = cJSON_CreateObject();
-            cJSON_AddStringToObject(respuesta, "type", "game_over");
-            cJSON* payload_resp = cJSON_CreateObject();
-            cJSON_AddStringToObject(payload_resp, "mensaje", "Juego terminado");
-            cJSON_AddNumberToObject(payload_resp, "final_score", jugador->score); // <-- puntaje final
-            cJSON_AddItemToObject(respuesta, "payload", payload_resp);
-            enviar_json(client_fd, respuesta);
-            cJSON_Delete(respuesta);
-            printf("Juego terminado. Puntaje final: %d\n", jugador->score);
-            return;
-        }
-    }
-
-    // Reducir contador de invulnerabilidad si aplica
+    // --- ACTUALIZACIÓN DE ESTADO DEL JUGADOR AL FINAL DEL TICK ---
     if (jugador->invulnerable > 0) jugador->invulnerable--;
 
-    // Enviar el nuevo estado al cliente
-    enviar_estado_juego(partida, client_fd);
+    // Enviar el nuevo estado a todos en la partida (jugadores y observadores)
+    broadcast_game_state(partida);
 }
 
 void enviar_estado_juego(Game* partida, int client_fd) {
@@ -345,6 +396,7 @@ void enviar_estado_juego(Game* partida, int client_fd) {
 
     // Datos básicos
     cJSON_AddStringToObject(payload_resp, "id", partida->id);
+    cJSON_AddNumberToObject(payload_resp, "spectators", partida->num_observers);
 
     // Mapa
     cJSON* mapa_arr = cJSON_CreateArray();
@@ -399,6 +451,75 @@ void enviar_estado_juego(Game* partida, int client_fd) {
     cJSON_Delete(respuesta);
 }
 
+void broadcast_game_state(Game* partida) {
+    // Enviar a todos los jugadores
+    for (int i = 0; i < partida->num_players; i++) {
+        enviar_estado_juego(partida, partida->players[i].socket);
+    }
+    // Enviar a todos los observadores
+    for (int i = 0; i < partida->num_observers; i++) {
+        enviar_estado_juego(partida, partida->observers[i]);
+    }
+}
+
+void broadcast_message(Game* partida, cJSON* message) {
+    // Enviar a todos los jugadores
+    for (int i = 0; i < partida->num_players; i++) {
+        enviar_json(partida->players[i].socket, message);
+    }
+    // Enviar a todos los observadores
+    for (int i = 0; i < partida->num_observers; i++) {
+        enviar_json(partida->observers[i], message);
+    }
+}
+
+void handle_join_spectator(cJSON* payload, int client_fd) {
+    printf("Handler: join_spectator\n");
+
+    cJSON* id_json = cJSON_GetObjectItemCaseSensitive(payload, "id");
+    if (!cJSON_IsString(id_json) || id_json->valuestring == NULL) {
+        printf("ID de partida inválido en la solicitud de observador\n");
+        return;
+    }
+    const char* game_id = id_json->valuestring;
+
+    Game* partida = NULL;
+    for (int i = 0; i < num_partidas; i++) {
+        if (strcmp(partidas[i].id, game_id) == 0) {
+            partida = &partidas[i];
+            break;
+        }
+    }
+
+    if (partida) {
+        if (partida->num_observers < MAX_OBSERVERS) {
+            partida->observers[partida->num_observers] = client_fd;
+            partida->num_observers++;
+            printf("Nuevo observador se unió a la partida %s. Total: %d\n", game_id, partida->num_observers);
+            
+            // Notificar a todos en la partida, incluyendo al nuevo observador
+            broadcast_game_state(partida);
+        } else {
+            printf("La partida %s está llena de observadores.\n", game_id);
+            cJSON* respuesta = cJSON_CreateObject();
+            cJSON_AddStringToObject(respuesta, "type", "error");
+            cJSON* payload_resp = cJSON_CreateObject();
+            cJSON_AddStringToObject(payload_resp, "mensaje", "La partida está llena de observadores.");
+            cJSON_AddItemToObject(respuesta, "payload", payload_resp);
+            enviar_json(client_fd, respuesta);
+            cJSON_Delete(respuesta);
+        }
+    } else {
+        printf("Partida no encontrada con ID: %s\n", game_id);
+        cJSON* respuesta = cJSON_CreateObject();
+        cJSON_AddStringToObject(respuesta, "type", "error");
+        cJSON* payload_resp = cJSON_CreateObject();
+        cJSON_AddStringToObject(payload_resp, "mensaje", "Partida no encontrada.");
+        cJSON_AddItemToObject(respuesta, "payload", payload_resp);
+        enviar_json(client_fd, respuesta);
+        cJSON_Delete(respuesta);
+    }
+}
 
 void handle_update_score(cJSON* payload, int client_fd) {
     printf("Handler: update_score\n");

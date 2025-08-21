@@ -8,11 +8,10 @@
 #define MAX_OBSERVERS 10
 #define MAX_GHOSTS 4
 #define MAX_FRUITS 5
-#define WALL  1
-#define PATH  0
-#define FRUIT 2
+#define WALL 1
+#define PATH 0
+#define DOT 2
 #define MAX_GAMES 5
-
 
 typedef struct {
     int x;
@@ -25,6 +24,7 @@ typedef struct {
 
 typedef struct {
     int x, y;
+    int start_x, start_y; // Posición inicial para reaparecer
     char color[10];
 }Ghost;
 

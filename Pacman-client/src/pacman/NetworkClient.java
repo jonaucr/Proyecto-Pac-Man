@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
+import com.google.gson.JsonObject;
 
 public class NetworkClient {
 
@@ -41,6 +42,20 @@ public class NetworkClient {
             String json = "{\"type\":\"join_game\",\"payload\":{\"game_id\":\"" + idPartida + "\"}}";
             out.println(json);
             System.out.println("Solicitud de unirse a la partida enviada.");
+        } else {
+            System.err.println("Error: No se ha establecido conexión.");
+        }
+    }
+
+    public void enviarJoinSpectator(String gameId) {
+        if (out != null) {
+            JsonObject request = new JsonObject();
+            request.addProperty("type", "join_spectator");
+            JsonObject payload = new JsonObject();
+            payload.addProperty("id", gameId);
+            request.add("payload", payload);
+            out.println(request.toString());
+            System.out.println("Solicitud de observación de partida enviada: " + request.toString());
         } else {
             System.err.println("Error: No se ha establecido conexión.");
         }
