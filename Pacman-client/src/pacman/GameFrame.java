@@ -22,12 +22,12 @@ public class GameFrame extends JFrame {
     private JLabel lblId;
     private JLabel lblScore;
     private JLabel lblLives;
-    private JLabel lblSpectators; // <-- añadir campo
+    private JLabel lblSpectators; 
     private GamePanel gamePanel;
     private final NetworkClient networkClient;
     private final Runnable onGameEnd;
 
-    private boolean gameEndedGracefully = false; // Flag para controlar el final del juego
+    private boolean gameEndedGracefully = false;
     public GameFrame(Game initialGame, NetworkClient networkClient, Runnable onGameEnd) {
         this.networkClient = networkClient;
         this.onGameEnd = onGameEnd;
@@ -57,12 +57,12 @@ public class GameFrame extends JFrame {
         infoPanel.add(lblId);
         infoPanel.add(lblScore);
         infoPanel.add(lblLives);
-        infoPanel.add(lblSpectators); // <-- añadir al panel
+        infoPanel.add(lblSpectators); 
 
         add(infoPanel, BorderLayout.NORTH);
 
         // Panel de juego
-        gamePanel = new GamePanel(); // Ahora usa el constructor que inicia el Timer
+        gamePanel = new GamePanel(); 
         gamePanel.setGame(initialGame);
         add(gamePanel, BorderLayout.CENTER);
 
@@ -76,13 +76,13 @@ public class GameFrame extends JFrame {
         InputMap inputMap = contentPane.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW);
         ActionMap actionMap = contentPane.getActionMap();
 
-        // Mapeo de teclas a nombres de acción
+        
         inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_UP, 0), "move_up");
         inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_DOWN, 0), "move_down");
         inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_LEFT, 0), "move_left");
         inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_RIGHT, 0), "move_right");
 
-        // Mapeo de nombres de acción a acciones reales (enviar al servidor)
+        // Mapeo de nombres de acción a acciones reales 
         actionMap.put("move_up", new AbstractAction() {
             @Override
             public void actionPerformed(ActionEvent e) {
@@ -117,7 +117,7 @@ public class GameFrame extends JFrame {
                     while (!isCancelled()) {
                         String serverResponse = networkClient.recibirMensaje();
                         if (serverResponse == null) {
-                            break; // El servidor cerró la conexión
+                            break; 
                         }
 
                         // Parsear mensaje general con Gson
@@ -158,8 +158,8 @@ public class GameFrame extends JFrame {
                                 onGameEnd.run();
                                 GameFrame.this.dispose();
                             });
-                            gameEndedGracefully = true; // Marcar que el juego terminó de forma controlada
-                            // Después de game_over salimos del loop
+                            gameEndedGracefully = true; 
+                            
                             break;
                         } else if ("game_win".equals(type)) {
                             JsonObject payload = json.getAsJsonObject("payload");
@@ -168,15 +168,15 @@ public class GameFrame extends JFrame {
 
                             SwingUtilities.invokeLater(() -> {
                                 JOptionPane.showMessageDialog(GameFrame.this, mensaje + "\nPuntaje final: " + finalScore, "¡Victoria!", JOptionPane.INFORMATION_MESSAGE);
-                                // Ejecutar finalización y cerrar ventana
+                                
                                 onGameEnd.run();
                                 GameFrame.this.dispose();
                             });
-                            gameEndedGracefully = true; // Marcar que el juego terminó de forma controlada
-                            // Salimos del loop porque el juego terminó
+                            gameEndedGracefully = true; 
+                            
                             break;
                         } else {
-                            // Mensaje desconocido: ignorar o loggear
+                            
                             System.out.println("Mensaje desconocido recibido: " + type);
                         }
                     }
@@ -188,7 +188,7 @@ public class GameFrame extends JFrame {
 
             @Override
             protected void process(List<Game> chunks) {
-                // Tomamos solo la última actualización para evitar repintar en exceso
+                
                 if (!chunks.isEmpty()) {
                     Game latestGame = chunks.get(chunks.size() - 1);
                     updateGame(latestGame);
@@ -197,11 +197,10 @@ public class GameFrame extends JFrame {
 
             @Override
             protected void done() {
-                // Se ejecuta cuando el bucle en doInBackground termina.
-                // Solo actuar si el juego no terminó por un mensaje "game_over" o "game_win".
+               
                 if (!gameEndedGracefully) {
                     JOptionPane.showMessageDialog(GameFrame.this, "Se perdió la conexión con el servidor.", "Desconectado", JOptionPane.WARNING_MESSAGE);
-                    onGameEnd.run(); // Volver al menú
+                    onGameEnd.run(); 
                     GameFrame.this.dispose();
                 }
             }
@@ -211,7 +210,7 @@ public class GameFrame extends JFrame {
 
     public void updateGame(Game game) {
         lblId.setText("ID Partida: " + game.id);
-        // Si no hay jugadores, mostrar N/A para evitar errores
+       
         if (!game.players.isEmpty()) {
             lblScore.setText("Puntos: " + game.players.get(0).score);
             lblLives.setText("Vidas: " + game.players.get(0).lives);

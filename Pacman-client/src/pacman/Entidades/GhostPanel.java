@@ -1,4 +1,5 @@
-// Puedes poner esto en un archivo llamado GhostPanel.java
+package pacman.Entidades;
+
 import javax.swing.*;
 import java.awt.*;
 

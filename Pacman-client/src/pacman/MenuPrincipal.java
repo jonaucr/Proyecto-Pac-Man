@@ -28,42 +28,39 @@ public class MenuPrincipal extends JFrame {
 
         // 2. Creación del panel principal que contendrá los botones
         JPanel panel = new JPanel();
-        panel.setLayout(new GridBagLayout()); // Usamos GridBagLayout para centrar componentes fácilmente
+        panel.setLayout(new GridBagLayout()); 
         GridBagConstraints gbc = new GridBagConstraints();
 
         // 3. Creación de los botones
         JButton btnIniciarJuego = new JButton("Iniciar Juego");
-        //JButton btnUnirsePartida = new JButton("Unirse a una Partida"); // Funcionalidad no implementada en servidor
+       
         JButton btnObservarPartida = new JButton("Observar Partida");
 
-        // Estilo opcional para los botones
+       
         btnIniciarJuego.setFont(new Font("Arial", Font.BOLD, 16));
-        //btnUnirsePartida.setFont(new Font("Arial", Font.BOLD, 16));
+      
         btnObservarPartida.setFont(new Font("Arial", Font.BOLD, 16));
 
         // 4. Añadir "Action Listeners" a los botones
 
         btnIniciarJuego.addActionListener(e -> {
-            // Creamos una nueva instancia de NetworkClient para cada intento de conexión.
-            // Esto asegura que no haya estados residuales de intentos anteriores.
+           
             NetworkClient networkClient = new NetworkClient();
             if (networkClient.conectar("localhost", 5000)) {
                 networkClient.enviarCrearPartida();
-                // Puedes leer la respuesta en un hilo aparte si quieres actualizar la interfaz
+                
                 new Thread(() -> {
                     try {
                         String respuesta = networkClient.recibirMensaje();
                         System.out.println("Respuesta del servidor: " + respuesta);
-                        // Aquí puedes parsear el JSON y abrir el frame del juego
+                        
                         Game game = Game.parseGameState(respuesta);
 
                         SwingUtilities.invokeLater(() -> {
-                            // Pasamos el estado inicial del juego y el cliente de red al GameFrame
-                            // También pasamos una "acción" a ejecutar cuando el juego termine,
-                            // que en este caso es volver a mostrar el menú principal.
+                            
                             GameFrame frame = new GameFrame(game, networkClient, () -> new MenuPrincipal().setVisible(true));
                             frame.setVisible(true);
-                            // Cerramos la ventana del menú principal
+                           
                             MenuPrincipal.this.dispose();
                         });
                     } catch (IOException ex) {
@@ -124,14 +121,14 @@ public class MenuPrincipal extends JFrame {
         // 5. Posicionamiento de los botones en el panel usando GridBagLayout
         gbc.gridx = 0;
         gbc.gridy = 0;
-        gbc.insets = new Insets(10, 10, 10, 10); // Margen entre componentes
+        gbc.insets = new Insets(10, 10, 10, 10); 
         panel.add(btnIniciarJuego, gbc);
 
         gbc.gridy = 1;
-        //panel.add(btnUnirsePartida, gbc);
+        
         panel.add(btnObservarPartida, gbc);
 
-        // 6. Añadir el panel a la ventana
+        
         add(panel);
     }
 }
